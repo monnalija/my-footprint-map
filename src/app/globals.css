@@ -31,3 +31,23 @@ body {
     text-wrap: balance;
   }
 }
+
+.radius_border {
+  @apply border border-gray-500 rounded;
+}
+
+.custom_typecontrol .btn {
+  @apply bg-white bg-gradient-to-b from-white to-gray-200;
+}
+.custom_typecontrol .btn:hover {
+  @apply bg-gray-100 bg-gradient-to-b from-gray-100 to-gray-200;
+}
+.custom_typecontrol .btn:active {
+  @apply bg-gray-200 bg-gradient-to-b from-gray-200 to-white;
+}
+.custom_typecontrol .selected_btn {
+  @apply text-white bg-blue-800 bg-gradient-to-b from-blue-800 to-blue-600;
+}
+.custom_typecontrol .selected_btn:hover {
+  @apply text-white;
+}

@@ -1,113 +1,125 @@
+"use client";
+
+
+import useLocationStore from "@/stores/locationStore";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [map, setMap] = useState(null);
+
+  const { locationItems, fetchLocations} = useLocationStore(state => state);
+
+  const [userLocation, setUserLocation] = useState({ lat: 33.450701, lng: 126.570667 });
+
+  useEffect(() => {
+    fetchLocations(); // Fetch items on component mount
+    console.log('ws', '패치를 해버려!')
+  }, [fetchLocations]);
+
+  useEffect(()=>{
+    // console.log('ws', locationItems)
+  },[locationItems])
+
+  useEffect(() => {
+    // 현재 위치를 가져오기
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+        },
+        error => {
+          console.error("Error getting user location:", error);
+        }
+      );
+    } else {
+      console.error("Geolocation is not supported by this browser.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.kakao && window.kakao.maps) {
+
+      kakao.maps.load(() => {
+        const mapContainer = document.getElementById('map');
+        const mapOption = {
+          center: new kakao.maps.LatLng(userLocation.lat, userLocation.lng),
+          level: 5
+        };
+        const mapInstance = new kakao.maps.Map(mapContainer, mapOption);
+        setMap(mapInstance);
+
+         // 현재 위치에 마커 추가
+         const userMarkerPosition = new kakao.maps.LatLng(userLocation.lat, userLocation.lng);
+         const userMarker = new kakao.maps.Marker({
+           position: userMarkerPosition,
+           title: "현재 위치"
+         });
+         userMarker.setMap(mapInstance);
+
+        // restaurants.forEach(restaurant => {
+        //   const { Name, Address, Latitude, Longitude } = restaurant.properties;
+        //   const markerPosition = new kakao.maps.LatLng(Latitude.number, Longitude.number);
+        //   const marker = new kakao.maps.Marker({
+        //     position: markerPosition
+        //   });
+        //   marker.setMap(map);
+
+        //   const infowindow = new kakao.maps.InfoWindow({
+        //     content: `<div>${Name.title[0].text.content}<br/>${Address.rich_text[0].text.content}</div>`
+        //   });
+        //   kakao.maps.event.addListener(marker, 'mouseover', () => infowindow.open(map, marker));
+        //   kakao.maps.event.addListener(marker, 'mouseout', () => infowindow.close());
+        // });
+      });
+    }
+  }, [userLocation]);
+
+  // 지도타입 컨트롤의 지도 또는 스카이뷰 버튼을 클릭하면 호출되어 지도타입을 바꾸는 함수입니다
+function setMapType(maptype:string) {
+  var roadmapControl = document.getElementById('btnRoadmap');
+  var skyviewControl = document.getElementById('btnSkyview');
+  if (maptype === 'roadmap') {
+      map.setMapTypeId(kakao.maps.MapTypeId.ROADMAP);
+      roadmapControl.className = 'selected_btn block w-16 h-7 float-left text-center leading-7 cursor-pointer bg-blue-800 bg-gradient-to-b from-blue-800 to-blue-600 text-white';
+      skyviewControl.className = 'btn block w-16 h-7 float-left text-center leading-7 cursor-pointer bg-white bg-gradient-to-b from-white to-gray-200 text-black';
+  } else {
+      map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
+      skyviewControl.className = 'selected_btn block w-16 h-7 float-left text-center leading-7 cursor-pointer bg-blue-800 bg-gradient-to-b from-blue-800 to-blue-600 text-white';
+      roadmapControl.className = 'btn block w-16 h-7 float-left text-center leading-7 cursor-pointer bg-white bg-gradient-to-b from-white to-gray-200 text-black';
+  }
+}
+
+const zoomIn = () => {
+  if (map) map.setLevel(map.getLevel() - 1);
+};
+
+const zoomOut = () => {
+  if (map) map.setLevel(map.getLevel() + 1);
+};
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
+      <div>
+      <h1>맛집 지도</h1>
+    </div>
+
+    <div className="map_wrap relative overflow-hidden w-full h-96">
+      <div id="map" className="w-full h-full relative overflow-hidden"></div>
+      <div className="absolute top-2.5 right-2.5 overflow-hidden w-32 h-7 m-0 p-0 z-10 text-xs font-sans">
+        <span id="btnRoadmap" className="selected_btn block w-16 h-7 float-left text-center leading-7 cursor-pointer bg-blue-800 bg-gradient-to-b from-blue-800 to-blue-600 text-white" onClick={() => setMapType('roadmap')}>지도</span>
+        <span id="btnSkyview" className="btn block w-16 h-7 float-left text-center leading-7 cursor-pointer bg-white bg-gradient-to-b from-white to-gray-200 text-black" onClick={() => setMapType('skyview')}>스카이뷰</span>
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+      <div className="absolute top-12 right-2.5 w-9 h-20 overflow-hidden z-10 bg-gray-200 border border-gray-500 rounded">
+        <span className="flex w-full h-10 text-center cursor-pointer border-b border-gray-300 justify-center center items-center" onClick={zoomIn}>
+          <img src="https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/ico_plus.png" alt="확대" className="h-4 w-4 border-none"  />
+        </span>
+        <span className="flex w-full h-10 text-center cursor-pointer justify-center center items-center" onClick={zoomOut}>
+          <img src="https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/ico_minus.png" alt="축소" className="w-4 h-4 border-none"  />
+        </span>
       </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+    </div>
     </main>
   );
 }
